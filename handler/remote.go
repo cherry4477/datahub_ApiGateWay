@@ -1,14 +1,14 @@
 package handler
 
 import (
+	"crypto/md5"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
-	"net/http"
 	"io/ioutil"
-	"crypto/md5"
-	"encoding/hex"
-	"encoding/base64"
+	"net/http"
+	"os"
 	"time"
 )
 
@@ -17,20 +17,20 @@ var (
 	API_PORT           = Env("API_PORT", false)
 	USER_TP_ADMIN  int = 2
 	USER_TP_UNKNOW     = -1
-	AUTHORIZATION 	   = "Authorization"
+	AUTHORIZATION      = "Authorization"
 
-	Username                     = Env("ADMIN_API_USERNAME", true)
-	Password                     = Env("ADMIN_API_USER_PASSWORD", true)
+	Username = Env("ADMIN_API_USERNAME", true)
+	Password = Env("ADMIN_API_USER_PASSWORD", true)
 )
 
 type user struct {
-	Loginname 	 string      `json:"loginName,omitempty"`
-	UserStatus 	 int         `json:"userStatus,omitempty"`
+	Loginname  string `json:"loginName,omitempty"`
+	UserStatus int    `json:"userStatus,omitempty"`
 }
 
 type Plan struct {
-	Units  int `json:"units"`
-	Used   int `json:"used"`
+	Units int `json:"units"`
+	Used  int `json:"used"`
 }
 
 type Subscription struct {
@@ -44,30 +44,30 @@ type Subscription struct {
 	Plan            Plan       `json:"plan"`
 }
 
-func getSubs(reponame,itemname,user string) ([]*Subscription ,error){
+func getSubs(reponame, itemname, user string) ([]*Subscription, error) {
 	logger.Debug("getRealCreateUser BEGIN. login name %s.", user)
 
-	url := fmt.Sprintf("http://%s:%s/subscriptions/pull/%s/%s?username=s%", API_SERVER, API_PORT, reponame,itemname,user)
-	token := getToken(Username,Password)
+	url := fmt.Sprintf("http://%s:%s/subscriptions/pull/%s/%s?username=s%", API_SERVER, API_PORT, reponame, itemname, user)
+	token := getToken(Username, Password)
 	b, err := httpGet(url, AUTHORIZATION, token)
 	if err != nil {
 		logger.Error("getSubs error:%v", err.Error())
-		return nil ,err
+		return nil, err
 	}
 	var result struct {
-		Code	      int               `json:"code"`
-		Msg	      string 		`json:"msg"`
-		Data	      []*Subscription   `json:"data"`
+		Code int             `json:"code"`
+		Msg  string          `json:"msg"`
+		Data []*Subscription `json:"data"`
 	}
 	if err := json.Unmarshal(b, &result); err != nil {
 		logger.Error("unmarshal RealCreateUser err: %v", err.Error())
-		return nil,err
+		return nil, err
 	}
 
-	return result.Data,err
+	return result.Data, err
 }
 
-func getUserStatus(createuser string) int{
+func getUserStatus(createuser string) int {
 	logger.Debug("getRealCreateUser BEGIN. login name %s.", createuser)
 
 	url := fmt.Sprintf("http://%s:%s/users/%s", API_SERVER, API_PORT, createuser)
@@ -77,9 +77,9 @@ func getUserStatus(createuser string) int{
 		return USER_TP_UNKNOW
 	}
 	var result struct {
-		Code	      int    `json:"code"`
-		Msg	      string `json:"msg"`
-		Data	      user   `json:"data"`
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+		Data user   `json:"data"`
 	}
 	if err := json.Unmarshal(b, &result); err != nil {
 		logger.Error("unmarshal RealCreateUser err: %v", err.Error())

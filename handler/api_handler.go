@@ -1,27 +1,26 @@
 package handler
 
 import (
+	"database/sql"
+	"fmt"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/asiainfoLDP/datahub_ApiGateWay/api"
 	"github.com/asiainfoLDP/datahub_ApiGateWay/common"
 	"github.com/asiainfoLDP/datahub_ApiGateWay/models"
 	"github.com/julienschmidt/httprouter"
-	"math/rand"
-	"net/http"
-	"time"
-	"database/sql"
-	"net/url"
-	"fmt"
 )
 
 const (
 	Necessary   = 1
 	NoNecessary = 0
-	Https	    = 1
-	Http	    = 0
-	Verify	    = 1
+	Https       = 1
+	Http        = 0
+	Verify      = 1
 	NoVerify    = 0
-
-
 )
 
 type Result struct {
@@ -35,7 +34,7 @@ func init() {
 }
 
 func UpdateApiHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	logger.Info("Request url: POST %v.", r.URL)
+	logger.Info("Request url: PUT %v.", r.URL)
 
 	var mode = "update"
 
@@ -69,7 +68,7 @@ func UpdateApiHandler(w http.ResponseWriter, r *http.Request, params httprouter.
 	}
 
 	//设置apiinfo
-	apiUrl ,err :=url.Parse(apiItem.Url)
+	apiUrl, err := url.Parse(apiItem.Url)
 
 	apiInfo := &models.ApiInfo{}
 	apiInfo.Reqrepo = repoName
@@ -88,27 +87,27 @@ func UpdateApiHandler(w http.ResponseWriter, r *http.Request, params httprouter.
 	apiInfo.ReqType = apiItem.Method
 	apiInfo.QueryTimes = 100000
 
-	_ ,err = models.QueryApiInfo(db,repoName,itemName,user)
+	_, err = models.QueryApiInfo(db, repoName, itemName, user)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			//这个item不存在 操作方式设置为插入
 			mode = "insert"
 			//插入信息
-			apiInfo,err = models.InsertApiInfo(db,apiInfo)
+			apiInfo, err = models.InsertApiInfo(db, apiInfo)
 			if err != nil {
 				logger.Error(err.Error())
 				api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiInfo, err.Error()), nil)
 				return
 			}
-		}else {
+		} else {
 			//其他错误
 			logger.Error(err.Error())
 			api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiInfo, err.Error()), nil)
 			return
 		}
-	}else {
+	} else {
 		//更新信息
-		apiInfo,err = models.UpdateApiInfo(db,apiInfo)
+		apiInfo, err = models.UpdateApiInfo(db, apiInfo)
 		if err != nil {
 			logger.Error(err.Error())
 			api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiInfo, err.Error()), nil)
@@ -119,23 +118,22 @@ func UpdateApiHandler(w http.ResponseWriter, r *http.Request, params httprouter.
 	//获得apiinfoId
 	ApiId := apiInfo.Id
 	apiParams := apiItem.Params
-	fmt.Println("params : %v",apiParams)
+	fmt.Println("params : %v", apiParams)
 	//设置参数
 	for _, param := range apiParams {
 		param.ApiId = ApiId
 		if mode == "insert" {
-			if err := models.InsertParam(db,&param);err!=nil{
+			if err := models.InsertParam(db, &param); err != nil {
 				logger.Error(err.Error())
 				api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiInfo, err.Error()), nil)
 			}
-		}else{
-			if err := models.UpdateParam(db,&param);err!=nil{
+		} else {
+			if err := models.UpdateParam(db, &param); err != nil {
 				logger.Error(err.Error())
 				api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiInfo, err.Error()), nil)
 			}
 		}
 	}
-
 
 	api.JsonResult(w, http.StatusOK, nil, nil)
 }
@@ -163,7 +161,7 @@ func QueryRepoListHandler(w http.ResponseWriter, r *http.Request, params httprou
 	repoName := params.ByName("reponame")
 	itemName := params.ByName("itemname")
 	//查询api转发信息
-	apiInfo, err := models.QueryApiInfo(db,repoName,itemName,user)
+	apiInfo, err := models.QueryApiInfo(db, repoName, itemName, user)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiInfo, err.Error()), nil)
 		return
@@ -174,12 +172,12 @@ func QueryRepoListHandler(w http.ResponseWriter, r *http.Request, params httprou
 	if apiInfo.IsVerify == Verify {
 		//需要认证
 		query = "?" + apiInfo.ReqAppKey
-	}else if apiInfo.IsVerify == NoVerify {
+	} else if apiInfo.IsVerify == NoVerify {
 		//不需要认证
 		query = "?"
 	}
 
-	apiParams ,err := models.QueryParamList(db,apiInfo.Id)
+	apiParams, err := models.QueryParamList(db, apiInfo.Id)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiParamsInfo, err.Error()), nil)
@@ -188,13 +186,13 @@ func QueryRepoListHandler(w http.ResponseWriter, r *http.Request, params httprou
 	}
 	if apiParams != nil {
 		//参数不为空
-		for _ , param := range apiParams {
-			if param.Must == Necessary{
+		for _, param := range apiParams {
+			if param.Must == Necessary {
 				//必要参数
 				value := r.Form.Get(param.Name)
 				if value != nil {
 					query = query + param.Name + "=" + value
-				}else {
+				} else {
 					//缺少必要参数
 				}
 			}
@@ -208,12 +206,12 @@ func QueryRepoListHandler(w http.ResponseWriter, r *http.Request, params httprou
 
 	redisDb := models.GPool.Get()
 	defer redisDb.Close()
-	redisDb.Do("GET",)
+	redisDb.Do("GET")
 	//查询reids中的订购信息
 
 	//查询订购服务中的订购信息
-	err , subs := getSubs(repoName,itemName,user)
-	if err != nil{
+	err, subs := getSubs(repoName, itemName, user)
+	if err != nil {
 		//未订购
 	}
 	//更新redis中的订购信息

@@ -1,12 +1,13 @@
 package router
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/asiainfoLDP/datahub_ApiGateWay/api"
 	"github.com/asiainfoLDP/datahub_ApiGateWay/handler"
 	"github.com/asiainfoLDP/datahub_ApiGateWay/log"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
-	"time"
 )
 
 const (

@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/asiainfoLDP/datahub_ApiGateWay/log"
 	"github.com/asiainfoLDP/datahub_ApiGateWay/models"
 	"github.com/asiainfoLDP/datahub_ApiGateWay/router"
 	"github.com/asiainfoLDP/datahub_commons/httputil"
-	"net/http"
-	"time"
 )
 
 const SERVERPORT = 8092
@@ -39,7 +40,6 @@ func main() {
 	//todo init db
 	models.InitDB()
 	models.InitRedis()
-
 
 	service := newService(SERVERPORT)
 	address := fmt.Sprintf(":%d", service.httpPort)

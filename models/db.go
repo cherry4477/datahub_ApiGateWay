@@ -3,11 +3,12 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"github.com/asiainfoLDP/datahub_ApiGateWay/log"
-	"github.com/garyburd/redigo/redis"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/asiainfoLDP/datahub_ApiGateWay/log"
+	"github.com/garyburd/redigo/redis"
 	"github.com/miekg/dns"
 )
 
@@ -16,20 +17,18 @@ const (
 	Platform_DaoCloud   = "daocloud"
 	Platform_DaoCloudUT = "daocloud_ut"
 	Platform_DataOS     = "dataos"
-
 )
 
 var (
-	logger 		= log.GetLogger()
-	Platform 	= Platform_Local
-	masterName 	= "mymaster"
-	sentinelTimeout = time.Millisecond * 500
-	GPool		       *redis.Pool
-	redisConnStr           string
-	Service_Name_Redis 	     = Env("redis_service_name", false)
+	logger                       = log.GetLogger()
+	Platform                     = Platform_Local
+	masterName                   = "mymaster"
+	sentinelTimeout              = time.Millisecond * 500
+	GPool                        *redis.Pool
+	redisConnStr                 string
+	Service_Name_Redis           = Env("redis_service_name", false)
 	DISCOVERY_CONSUL_SERVER_ADDR = Env("CONSUL_SERVER", false)
 	DISCOVERY_CONSUL_SERVER_PORT = Env("CONSUL_DNS_PORT", false)
-
 )
 
 //================================================
@@ -85,7 +84,7 @@ func InitDB() {
 	return
 }
 
-func InitRedis(){
+func InitRedis() {
 	for i := 0; i < 3; i++ {
 		initRedisPool()
 		if GPool == nil {
@@ -98,7 +97,7 @@ func InitRedis(){
 			c := GPool.Get()
 
 			if _, err := c.Do("PING"); err != nil {
-				logger.Warn("err : ",err)
+				logger.Warn("err : ", err)
 				GPool.Close()
 				select {
 				case <-time.After(time.Second * 10):
@@ -201,7 +200,6 @@ func getRedisMasterAddr(sentinelAddr string) (string, string) {
 	}
 	return redisMasterPair[0], redisMasterPair[1]
 }
-
 
 func initRedisPool() {
 	//redisAddr := os.Getenv("REDIS_PORT_6379_TCP_ADDR")
@@ -327,7 +325,6 @@ func connectDB() {
 		setDB(db)
 	}
 }
-
 
 func upgradeDB() {
 	err := TryToUpgradeDatabase(DB(), "datafoundry:data_integration", os.Getenv("MYSQL_CONFIG_DONT_UPGRADE_TABLES") != "yes") // don't change the name
