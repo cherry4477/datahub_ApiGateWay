@@ -27,6 +27,7 @@ type Param struct {
 	Must  int    `json:"must,omitempty"`
 	Type  string `json:"type,omitempty"`
 	ApiId int    `json:"apiId,omitempty"`
+	State int    `json:"state,omitempty"`
 }
 
 type ApiItem struct {
@@ -34,7 +35,7 @@ type ApiItem struct {
 	Method int     `json:"method,omitempty"`
 	Verify int     `json:"verify,omitempty"`
 	Key    string  `json:"key,omitempty"`
-	Params []Param `json:"params,omitempty"`
+	Params []*Param `json:"params,omitempty"`
 }
 
 //插入apiinfo
@@ -112,8 +113,8 @@ func UpdateParam(db *sql.DB, param *Param) error {
 	logger.Info("Model begin update param")
 	defer logger.Info("Model end update param")
 
-	sqlstr := "update api_param set name = ? , must = ? ,type = ? ,apiid = ?"
-	_, err := db.Exec(sqlstr, param.Name, param.Must, param.Type, param.ApiId)
+	sqlstr := "update api_param set name = ? , must = ? ,type = ? ,apiid = ? where id = ?"
+	_, err := db.Exec(sqlstr, param.Name, param.Must, param.Type, param.ApiId,param.Id)
 	if err != nil {
 		return err
 	}
@@ -147,8 +148,8 @@ func queryParams(db *sql.DB, sqlwhere string, sqlParams ...interface{}) ([]*Para
 	if sqlwhere != "" {
 		sqlwhereall = fmt.Sprintf("where %s", sqlwhere)
 	}
-	sqlstr := fmt.Sprintf(`SELECT name ,must , type
-		FROM api_prama
+	sqlstr := fmt.Sprintf(`SELECT id ,name ,must , type
+		FROM api_param
 		%s`,
 		sqlwhereall)
 
@@ -164,7 +165,7 @@ func queryParams(db *sql.DB, sqlwhere string, sqlParams ...interface{}) ([]*Para
 	for rows.Next() {
 		param := &Param{}
 
-		err := rows.Scan(&param.Name, &param.Must, &param.Type)
+		err := rows.Scan(&param.Id,&param.Name, &param.Must, &param.Type)
 
 		if err != nil {
 			return nil, err
@@ -176,4 +177,16 @@ func queryParams(db *sql.DB, sqlwhere string, sqlParams ...interface{}) ([]*Para
 	}
 
 	return params, nil
+}
+
+func DeleteParams(db *sql.DB, param *Param) error {
+	logger.Info("Model begin delete param")
+	defer logger.Info("Model end delete param")
+
+	sqlstr := "delete from api_param where id = ?"
+	_, err := db.Exec(sqlstr,param.Id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

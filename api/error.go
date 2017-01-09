@@ -31,6 +31,13 @@ const (
 	ErrorCodeInvalidParameters = 1307
 	ErrorCodeQueryApiInfo      = 1308
 	ErrorCodeQueryApiParamsInfo= 1309
+	ErrorCodeNoOrder	   = 1310
+	ErrorCodeRedisGetFail	   = 1311
+	ErrorCodeJsonMarshalfail   = 1312
+	ErrorCodeUpdateSubs	   = 1313
+	ErrorCodeUpdateApiParamsInfo= 1315
+	ErrorCodeDeleteApiParamsInfo= 1316
+	ErrorCodeInsertApiParamsInfo= 1317
 
 	NumErrors = 1500 // about 12k memroy wasted
 )
@@ -49,6 +56,16 @@ func init() {
 
 	initError(ErrorCodeQueryApiInfo, "failed to query apiInfo")
 	initError(ErrorCodeQueryApiParamsInfo, "failed to query api params")
+
+
+	initError(ErrorCodeNoOrder, "No order for this item")
+	initError(ErrorCodeRedisGetFail, "get subs to redis fail")
+	initError(ErrorCodeJsonMarshalfail, "json Marshal fail")
+
+	initError(ErrorCodeUpdateSubs, "update subscription fail")
+	initError(ErrorCodeUpdateApiParamsInfo, "update param fail")
+	initError(ErrorCodeDeleteApiParamsInfo, "delete param fail")
+	initError(ErrorCodeInsertApiParamsInfo, "insert param fail")
 
 	ErrorNone = GetError(ErrorCodeNone)
 	ErrorUnkown = GetError(ErrorCodeUnkown)

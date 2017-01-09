@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"bytes"
+	"net/url"
 )
 
 var (
@@ -44,10 +46,19 @@ type Subscription struct {
 	Plan            Plan       `json:"plan"`
 }
 
-func getSubs(reponame, itemname, user string) ([]*Subscription, error) {
-	logger.Debug("getRealCreateUser BEGIN. login name %s.", user)
+type SubsResults struct {
+	Total	int		`json:"total,omitempty"`
+	Results	[]Subscription	`json:"results,omitempty"`
+}
 
-	url := fmt.Sprintf("http://%s:%s/subscriptions/pull/%s/%s?username=s%", API_SERVER, API_PORT, reponame, itemname, user)
+type SubsArray struct {
+	Subs	[]Subscription	`json:"subs,omitempty"`
+}
+
+func getSubs(reponame, itemname, user string) ([]Subscription, error) {
+	logger.Debug("getRealCreateUser BEGIN. login name %s.", user)
+	user = url.QueryEscape(user)
+	url := fmt.Sprintf("http://%s:%s/subscriptions/pull/%s/%s?username=%s", API_SERVER, API_PORT, reponame, itemname, user)
 	token := getToken(Username, Password)
 	b, err := httpGet(url, AUTHORIZATION, token)
 	if err != nil {
@@ -57,37 +68,41 @@ func getSubs(reponame, itemname, user string) ([]*Subscription, error) {
 	var result struct {
 		Code int             `json:"code"`
 		Msg  string          `json:"msg"`
-		Data []*Subscription `json:"data"`
+		Data SubsResults     `json:"data"`
 	}
 	if err := json.Unmarshal(b, &result); err != nil {
 		logger.Error("unmarshal RealCreateUser err: %v", err.Error())
 		return nil, err
 	}
 
-	return result.Data, err
+	return result.Data.Results, err
 }
 
-func getUserStatus(createuser string) int {
-	logger.Debug("getRealCreateUser BEGIN. login name %s.", createuser)
-
-	url := fmt.Sprintf("http://%s:%s/users/%s", API_SERVER, API_PORT, createuser)
-	b, err := httpGet(url)
+func updateSubs(sub Subscription, action string) (error) {
+	logger.Debug("updateSubs BEGIN. subs id %s.", sub.Subscription_id)
+	body := struct {
+		Username	string	`json:"username"`
+		Repname		string	`json:"repname"`
+		Itemname	string	`json:"itemname"`
+		Action		string	`json:"action"`
+		Used		int	`json:"used"`
+	}{Username : sub.Pull_user_name,Repname : sub.Repository_name,Itemname : sub.Dataitem_name}
+	if action == "set_plan_used" {
+		body.Action = action
+		body.Used = sub.Plan.Used
+	}
+	if action == "set_retrieved" {
+		body.Action = action
+	}
+	url := fmt.Sprintf("http://%s:%s/subscription/%s", API_SERVER, API_PORT, sub.Subscription_id)
+	token := getToken(Username, Password)
+	bodyjson , _ := json.Marshal(body)
+	_ , err := HttpPutJson(url,bodyjson ,AUTHORIZATION, token)
 	if err != nil {
-		logger.Error("getFullCreateUser error:%v", err.Error())
-		return USER_TP_UNKNOW
+		logger.Error("updateSub error:%v", err.Error())
+		return err
 	}
-	var result struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data user   `json:"data"`
-	}
-	if err := json.Unmarshal(b, &result); err != nil {
-		logger.Error("unmarshal RealCreateUser err: %v", err.Error())
-		return USER_TP_UNKNOW
-	}
-
-	userStatus := result.Data.UserStatus
-	return userStatus
+	return err
 }
 
 func httpGet(getUrl string, credential ...string) ([]byte, error) {
@@ -107,6 +122,22 @@ func httpGet(getUrl string, credential ...string) ([]byte, error) {
 		if resp.StatusCode != 200 {
 			return nil, fmt.Errorf("[http get] status err %s, %d\n", getUrl, resp.StatusCode)
 		}
+	}else if len(credential) == 4 {
+		req, err := http.NewRequest("GET", getUrl, nil)
+		if err != nil {
+			return nil, fmt.Errorf("[http] err %s, %s\n", getUrl, err)
+
+		}
+		req.Header.Set(credential[0], credential[1])
+		req.Header.Set(credential[2], credential[3])
+		resp, err = http.DefaultClient.Do(req)
+		if err != nil {
+			logger.Error("http get err:%s", err.Error())
+			return nil, err
+		}
+		if resp.StatusCode != 200 {
+			return nil, fmt.Errorf("[http get] status err %s, %d\n", getUrl, resp.StatusCode)
+		}
 	} else {
 		resp, err = http.Get(getUrl)
 		if err != nil {
@@ -117,8 +148,32 @@ func httpGet(getUrl string, credential ...string) ([]byte, error) {
 			return nil, fmt.Errorf("[http get] status err %s, %d\n", getUrl, resp.StatusCode)
 		}
 	}
-
 	return ioutil.ReadAll(resp.Body)
+}
+
+func HttpPutJson(putUrl string, body []byte, credential ...string) ([]byte, error) {
+	var resp *http.Response
+	var err error
+	req, err := http.NewRequest("PUT", putUrl, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("[http] err %s, %s\n", putUrl, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(credential[0], credential[1])
+	resp, err = http.DefaultClient.Do(req)
+
+	if err != nil {
+		return nil, fmt.Errorf("[http] err %s, %s\n", putUrl, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("[http] status err %s, %d\n", putUrl, resp.StatusCode)
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("[http] read err %s, %s\n", putUrl, err)
+	}
+	return b, nil
 }
 
 func Env(name string, required bool, showLog ...bool) string {
@@ -151,6 +206,29 @@ func getToken(user, passwd string) string {
 		if data, ok := m["data"].(map[string]interface{}); ok {
 			if token, ok := data["token"].(string); ok {
 				return "Token " + token
+			}
+		}
+	}
+	return ""
+}
+
+func valid(authuser, apiToken string) string {
+	URL := fmt.Sprintf("http://%s:%s/valid", API_SERVER, API_PORT)
+	logger.Info("[Debug] http://%s ", URL)
+	b, err := httpGet(URL, AUTHORIZATION, "Token "+apiToken,"Authuser",authuser)
+	logger.Info("[DEBUG] valid %s", string(b))
+	if err != nil {
+		logger.Error("valid err: %s", err.Error())
+		return ""
+	}
+	var i interface{}
+	if err := json.Unmarshal(b, &i); err != nil {
+		logger.Error("unmarshal token err: %s", err.Error())
+	}
+	if m, ok := i.(map[string]interface{}); ok {
+		if data, ok := m["data"].(map[string]interface{}); ok {
+			if sregion, ok := data["sregion"].(string); ok {
+				return sregion
 			}
 		}
 	}
