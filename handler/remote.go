@@ -54,6 +54,29 @@ type SubsResults struct {
 type SubsArray struct {
 	Subs	[]Subscription	`json:"subs,omitempty"`
 }
+func getUserStatus(createuser string) int {
+	logger.Debug("getCreateUser BEGIN. login name %s.", createuser)
+
+	url := fmt.Sprintf("http://%s:%s/users/%s", API_SERVER, API_PORT, createuser)
+	b, err := httpGet(url)
+	if err != nil {
+		logger.Debug("getFullCreateUser error:%v", err.Error())
+		return USER_TP_UNKNOW
+	}
+	var result struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+		Data user   `json:"data"`
+	}
+	if err := json.Unmarshal(b, &result); err != nil {
+		logger.Debug("unmarshal CreateUser err: %s", err.Error())
+		return USER_TP_UNKNOW
+	}
+
+	userStatus := result.Data.UserStatus
+	logger.Debug("UserStatus is:%s", userStatus)
+	return userStatus
+}
 
 func getSubs(reponame, itemname, user string) ([]Subscription, error) {
 	logger.Debug("getRealCreateUser BEGIN. login name %s.", user)

@@ -43,16 +43,13 @@ func UpdateApiHandler(w http.ResponseWriter, r *http.Request, params httprouter.
 
 	logger.Info("Begin do CreateRepo handler.")
 	defer logger.Info("End do recharge handler.")
-
-	r.ParseForm()
-	authuser := r.Form.Get("authuser")
-	apiToken := r.Form.Get("apitoken")
-	sregion := valid(authuser,apiToken)
-	if sregion == "" {
+	user := r.Header.Get("User")
+	if getUserStatus(user) != USER_TP_ADMIN {
+		logger.Error("user auth fail")
 		api.JsonResult(w, http.StatusBadRequest, api.GetError(api.ErrorCodeAuthFailed), nil)
 		return
 	}
-	user := sregion+"+"+authuser
+	r.ParseForm()
 
 	repoName := params.ByName("reponame")
 	itemName := params.ByName("itemname")
@@ -92,7 +89,7 @@ func UpdateApiHandler(w http.ResponseWriter, r *http.Request, params httprouter.
 	apiInfo.ReqType = apiItem.Method
 	apiInfo.QueryTimes = 100000
 
-	_, err = models.QueryApiInfo(db, repoName, itemName, user)
+	_, err = models.QueryApiInfo(db, repoName, itemName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			//插入信息
@@ -192,7 +189,7 @@ func QueryRepoListHandler(w http.ResponseWriter, r *http.Request, params httprou
 	itemName := params.ByName("itemname")
 
 	//查询api转发信息
-	apiInfo, err := models.QueryApiInfo(db, repoName, itemName, user)
+	apiInfo, err := models.QueryApiInfo(db, repoName, itemName)
 	if err != nil {
 		logger.Error("RepoList query apiinfo error:%v", err.Error())
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryApiInfo, err.Error()), nil)

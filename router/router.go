@@ -65,5 +65,5 @@ func InitRouter() *httprouter.Router {
 func NewRouter(router *httprouter.Router) {
 	logger.Info("new router.")
 	router.PUT("/apiinfo/:reponame/:itemname", api.TimeoutHandle(35000*time.Millisecond, handler.UpdateApiHandler))
-	router.GET("/apiitem/:reponame/:itemname", api.TimeoutHandle(35000*time.Millisecond, handler.QueryRepoListHandler))
+	router.GET("/apiinfo/:reponame/:itemname", api.TimeoutHandle(35000*time.Millisecond, handler.QueryRepoListHandler))
 }

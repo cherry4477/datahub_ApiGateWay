@@ -53,7 +53,7 @@ func InsertApiInfo(db *sql.DB, apiInfo *ApiInfo) (*ApiInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	apiInfo, err = QueryApiInfo(db, apiInfo.Reqrepo, apiInfo.Reqitem, apiInfo.CreateUser)
+	apiInfo, err = QueryApiInfo(db, apiInfo.Reqrepo, apiInfo.Reqitem)
 
 	return apiInfo, err
 
@@ -72,13 +72,13 @@ func UpdateApiInfo(db *sql.DB, apiInfo *ApiInfo) (*ApiInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	apiInfo, err = QueryApiInfo(db, apiInfo.Reqrepo, apiInfo.Reqitem, apiInfo.CreateUser)
+	apiInfo, err = QueryApiInfo(db, apiInfo.Reqrepo, apiInfo.Reqitem)
 
 	return apiInfo, err
 }
 
 //查询apiinfo
-func QueryApiInfo(db *sql.DB, reqrepo, reqitem, user string) (*ApiInfo, error) {
+func QueryApiInfo(db *sql.DB, reqrepo, reqitem string) (*ApiInfo, error) {
 	logger.Info("Model begin query ApiInfo")
 	defer logger.Info("Model end query ApiInfo")
 
@@ -86,9 +86,9 @@ func QueryApiInfo(db *sql.DB, reqrepo, reqitem, user string) (*ApiInfo, error) {
 
 	sqlstr := "select id,reqrepo,reqitem,reqresourcepage,urlpath,reqappkey," +
 		" isverify,ishttps,querytimes,reqtype " +
-		"from api_gateway_config where reqrepo = ? and reqitem = ? and createuser = ?"
+		"from api_gateway_config where reqrepo = ? and reqitem = ? "
 
-	err := db.QueryRow(sqlstr, reqrepo, reqitem, user).Scan(&apiInfo.Id, &apiInfo.Reqrepo, &apiInfo.Reqitem,
+	err := db.QueryRow(sqlstr, reqrepo, reqitem).Scan(&apiInfo.Id, &apiInfo.Reqrepo, &apiInfo.Reqitem,
 		&apiInfo.ReqResourcePage, &apiInfo.UrlPath,
 		&apiInfo.ReqAppKey, &apiInfo.IsVerify, &apiInfo.IsHttps, &apiInfo.QueryTimes, &apiInfo.ReqType)
 	if err != nil {
