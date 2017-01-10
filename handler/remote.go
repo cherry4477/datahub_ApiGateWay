@@ -102,7 +102,7 @@ func getSubs(reponame, itemname, user string) ([]Subscription, error) {
 }
 
 func updateSubs(sub Subscription, action string) (error) {
-	logger.Debug("updateSubs BEGIN. subs id %s.", sub.Subscription_id)
+	logger.Debug("updateSubs BEGIN. subs id %d.", sub.Subscription_id)
 	body := struct {
 		Username	string	`json:"username"`
 		Repname		string	`json:"repname"`
@@ -117,7 +117,7 @@ func updateSubs(sub Subscription, action string) (error) {
 	if action == "set_retrieved" {
 		body.Action = action
 	}
-	url := fmt.Sprintf("http://%s:%s/subscription/%s", API_SERVER, API_PORT, sub.Subscription_id)
+	url := fmt.Sprintf("http://%s:%s/subscription/%d", API_SERVER, API_PORT, sub.Subscription_id)
 	token := getToken(Username, Password)
 	bodyjson , _ := json.Marshal(body)
 	_ , err := HttpPutJson(url,bodyjson ,AUTHORIZATION, token)

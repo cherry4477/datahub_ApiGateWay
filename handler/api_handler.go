@@ -170,15 +170,16 @@ func QueryRepoListHandler(w http.ResponseWriter, r *http.Request, params httprou
 	defer logger.Info("End get RepoList handler.")
 
 	r.ParseForm()
-	authuser := r.Form.Get("authuser")
-	apiToken := r.Form.Get("apitoken")
-	sregion := valid(authuser,apiToken)
-	if sregion == "" {
-		api.JsonResult(w, http.StatusBadRequest, api.GetError(api.ErrorCodeAuthFailed), nil)
-		return
-	}
-
-	user := sregion+"+"+authuser
+	//authuser := r.Form.Get("authuser")
+	//apiToken := r.Form.Get("apitoken")
+	//sregion := valid(authuser,apiToken)
+	//if sregion == "" {
+	//	api.JsonResult(w, http.StatusBadRequest, api.GetError(api.ErrorCodeAuthFailed), nil)
+	//	return
+	//}
+	//
+	//user := sregion+"+"+authuser
+	user := "datahub+datahub@asiainfo.com"
 	db := models.GetDB()
 	if db == nil {
 		logger.Warn("Get db is nil.")
@@ -250,15 +251,18 @@ func QueryRepoListHandler(w http.ResponseWriter, r *http.Request, params httprou
 	if apiSubs == nil {
 		//查询订购服务中的订购信息
 		subs, err := getSubs(repoName, itemName, user)
-		if err != nil {
+		if err != nil || len(subs)==0{
 			//未订购报错退出
 			logger.Error("RepoList get subscription error:%v", err.Error())
 			api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeNoOrder, err.Error()), nil)
 			return
 		}
 		//提示subscription已经成功接收sub信息
-		for _, sub := range subs {
-			err = updateSubs(sub,"set_retrieved")
+		for i:=0 ; i<len(subs) ; i++  {
+			subs[i].Pull_user_name = user
+			subs[i].Repository_name = repoName
+			subs[i].Dataitem_name = itemName
+			err = updateSubs(subs[i],"set_retrieved")
 			if err != nil {
 				//json格式化出错
 				logger.Error("RepoList update subscription retrieved error:%v", err.Error())
