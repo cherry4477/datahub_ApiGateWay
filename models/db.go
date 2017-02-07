@@ -21,7 +21,7 @@ const (
 
 var (
 	logger                       = log.GetLogger()
-	Platform                     = Platform_Local
+	Platform                     = Platform_DaoCloud
 	masterName                   = "mymaster"
 	sentinelTimeout              = time.Millisecond * 500
 	GPool                        *redis.Pool
@@ -334,14 +334,34 @@ func upgradeDB() {
 }
 
 func MysqlAddrPort() (string, string) {
-	return os.Getenv(os.Getenv("ENV_NAME_MYSQL_ADDR")),
-		os.Getenv(os.Getenv("ENV_NAME_MYSQL_PORT"))
+	switch Platform {
+	case Platform_DaoCloud:
+		entryList := dnsExchange(os.Getenv("mysql_service_name"),DISCOVERY_CONSUL_SERVER_ADDR, DISCOVERY_CONSUL_SERVER_PORT)
+
+		if len(entryList) > 0 {
+			return entryList[0].ip, entryList[0].port
+		}
+	case Platform_DataOS:
+		return os.Getenv(os.Getenv("ENV_NAME_MYSQL_ADDR")), os.Getenv(os.Getenv("ENV_NAME_MYSQL_PORT"))
+	case Platform_DaoCloudUT:
+		fallthrough
+	case Platform_Local:
+		return os.Getenv("MYSQL_PORT_3306_TCP_ADDR"), os.Getenv("MYSQL_PORT_3306_TCP_PORT")
+	}
+
+	return "", ""
 }
 
 func MysqlDatabaseUsernamePassword() (string, string, string) {
 
-	return os.Getenv(os.Getenv("ENV_NAME_MYSQL_DATABASE")),
-		os.Getenv(os.Getenv("ENV_NAME_MYSQL_USER")),
-		os.Getenv(os.Getenv("ENV_NAME_MYSQL_PASSWORD"))
+	switch Platform {
+	case Platform_DataOS:
+		return os.Getenv(os.Getenv("ENV_NAME_MYSQL_DATABASE")),
+			os.Getenv(os.Getenv("ENV_NAME_MYSQL_USER")),
+			os.Getenv(os.Getenv("ENV_NAME_MYSQL_PASSWORD"))
+	}
 
+	return os.Getenv("MYSQL_ENV_MYSQL_DATABASE"),
+		os.Getenv("MYSQL_ENV_MYSQL_USER"),
+		os.Getenv("MYSQL_ENV_MYSQL_PASSWORD")
 }
